@@ -1,0 +1,49 @@
+header {
+    background-color: #c7616a;
+    color: white;
+    padding: 10px;
+  }
+  
+  .text-center {
+    text-align: center;
+  }
+  
+  .text-right {
+    text-align: right;
+  }
+  
+  .services-list {
+    list-style-type: square;
+    margin-left: 20px;
+  }
+  
+  #about {
+    background-color: #ddd;
+    padding: 20px;
+  }
+  
+  img[alt="https://sun9-20.userapi.com/impg/Yn_MC-BUh-ulgW--30VRdifIIwGdTngXApmB_A/KE3EkkYkh04.jpg?size=960x1280&quality=95&sign=cb4a44e42c2318c53d67a3d65208bf07&type=album"] {
+    width: 300px;
+    height: 200px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    display: block;
+    margin: 20px auto;
+  }
+
+  .group-photo p {
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+  
+
+  .menu a:link,
+  .menu a:visited {
+    display: block;
+    padding: 8px;
+    color: white;
+    text-decoration: none;
+  }
+  

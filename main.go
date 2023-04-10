@@ -1,3 +1,6 @@
+//Write a program that takes a list of integers as input and returns a new list containing the cumulative sum of the original list (i.e., the running total of the numbers). For example, given the input list [1, 2, 3, 4], the output should be [1, 3, 6, 10].
+
+
 package main
 
 import "fmt"

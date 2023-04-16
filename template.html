@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Список людей</title>
+  </head>
+  <body>
+    <h1>Добавить человека</h1>
+    <form id="add-person-form">
+      <label for="name-input">Введите имя:</label>
+      <input type="text" id="name-input" name="name">
+      <br>
+      <label for="age-input">Введите возраст:</label>
+      <input type="number" id="age-input" name="age">
+      <br>
+      <button type="submit">Добавить</button>
+    </form>
+
+    <h1>Список людей</h1>
+    <table id="people-table">
+      <tr>
+        <th>ID</th>
+        <th>Имя</th>
+        <th>Возраст</th>
+      </tr>
+    </table>
+
+    <button id="refresh-button">Обновить</button>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const addPersonForm = document.getElementById('add-person-form');
+        const peopleTable = document.getElementById('people-table');
+        const refreshButton = document.getElementById('refresh-button');
+
+        function getPeople() {
+          fetch('/people')
+            .then(response => response.json())
+            .then(data => {
+              while (peopleTable.rows.length > 1) {
+                peopleTable.deleteRow(1);
+              }
+              data.forEach(person => {
+                const row = peopleTable.insertRow();
+                row.insertCell().textContent = person.id;
+                row.insertCell().textContent = person.name;
+                row.insertCell().textContent = person.age;
+              });
+            });
+        }
+
+        getPeople();
+
+        addPersonForm.addEventListener('submit', event => {
+          event.preventDefault();
+          const formData = new FormData(addPersonForm);
+          const name = formData.get('name');
+          const age = formData.get('age');
+          fetch('/people', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name,
+              age
+            })
+          })
+            .then(response => response.json())
+            .then(data => {
+              const row = peopleTable.insertRow();
+              row.insertCell().textContent = data.id;
+              row.insertCell().textContent = data.name;
+              row.insertCell().textContent = data.age;
+            })
+            .catch(error => console.error(error));
+        });
+
+        refreshButton.addEventListener('click', event => {
+          getPeople();
+          console.log('Данные обновлены!');
+        });
+      });
+    </script>
+  </body>
+</html>

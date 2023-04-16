@@ -1,26 +1,78 @@
-//Write a program that takes a list of integers as input and returns a new list containing the cumulative sum of the original list (i.e., the running total of the numbers). For example, given the input list [1, 2, 3, 4], the output should be [1, 3, 6, 10].
-
-
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"html/template"
+	"log"
+	"net/http"
+)
 
-func cumulativeSum(numbers []int) []int {
-	sum := 0
-	cumSum := make([]int, len(numbers))
-
-	for i, number := range numbers {
-		sum += number
-		cumSum[i] = sum
-	}
-
-	return cumSum
+// Структура для представления человека
+type Person struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Age  int    `json:"age"`
 }
 
+// Срез для хранения людей
+var people []Person
+
 func main() {
-	numbers := []int{1, 2, 3, 4}
+	// Обработчик для корневого маршрута
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Шаблон страницы со списком людей
+		tmpl := template.Must(template.ParseFiles("static/template.html"))
 
-	cumSum := cumulativeSum(numbers)
+		// Выводим список людей
+		err := tmpl.Execute(w, people)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
 
-	fmt.Println(cumSum)
+	// Обработчик для маршрута получения списка людей
+	http.HandleFunc("/people", func(w http.ResponseWriter, r *http.Request) {
+		// Отправляем список людей в формате JSON
+		json.NewEncoder(w).Encode(people)
+	})
+
+	// Обработчик для маршрута добавления нового человека
+	http.HandleFunc("/people/add", func(w http.ResponseWriter, r *http.Request) {
+		// Получаем данные из формы
+		name := r.FormValue("name")
+		age := r.FormValue("age")
+
+		// Преобразуем возраст в целочисленный тип
+		ageInt := 0
+		if age != "" {
+			ageInt = parseAge(age)
+		}
+
+		// Создаем нового человека и добавляем его в список
+		person := Person{
+			ID:   len(people) + 1,
+			Name: name,
+			Age:  ageInt,
+		}
+		people = append(people, person)
+
+		// Перенаправляем на главную страницу
+		http.Redirect(w, r, "/", http.StatusFound)
+	})
+
+	// Запускаем веб-сервер на порту 8081
+	log.Fatal(http.ListenAndServe(":8081", nil))
+}
+
+// Функция для преобразования возраста из строки в целочисленный тип
+func parseAge(age string) int {
+	ageInt := 0
+	for _, ch := range age {
+		if ch >= '0' && ch <= '9' {
+			ageInt = ageInt*10 + int(ch-'0')
+		} else {
+			break
+		}
+	}
+	return ageInt
 }

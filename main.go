@@ -1,3 +1,6 @@
+//server collects data and outputs it
+
+
 package main
 
 import (

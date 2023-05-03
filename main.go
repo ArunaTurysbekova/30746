@@ -1,67 +1,112 @@
-//server collects data and outputs it
-
-
 package main
 
 import (
-	"encoding/json"
+	"database/sql"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-type Person struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+type User struct {
+	Username string
+	Password string
 }
-
-var people []Person
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles("static/template.html"))
-
-		err := tmpl.Execute(w, people)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
-
-	http.HandleFunc("/people", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(people)
-	})
-
-	http.HandleFunc("/people/add", func(w http.ResponseWriter, r *http.Request) {
-		name := r.FormValue("name")
-		age := r.FormValue("age")
-
-		ageInt := 0
-		if age != "" {
-			ageInt = parseAge(age)
-		}
-
-		person := Person{
-			ID:   len(people) + 1,
-			Name: name,
-			Age:  ageInt,
-		}
-		people = append(people, person)
-
-		http.Redirect(w, r, "/", http.StatusFound)
-	})
-
-	log.Fatal(http.ListenAndServe(":8081", nil))
-}
-
-func parseAge(age string) int {
-	ageInt := 0
-	for _, ch := range age {
-		if ch >= '0' && ch <= '9' {
-			ageInt = ageInt*10 + int(ch-'0')
-		} else {
-			break
-		}
+	// Создание базы данных
+	db, err := sql.Open("sqlite3", "users.db")
+	if err != nil {
+		log.Fatal(err)
 	}
-	return ageInt
+	defer db.Close()
+
+	// Создание таблицы пользователей
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		username TEXT PRIMARY KEY,
+		password TEXT NOT NULL
+	)`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Обработчик страницы логина
+	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			tmpl, err := template.ParseFiles("static/login.html")
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = tmpl.Execute(w, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if r.Method == "POST" {
+			username := r.FormValue("username")
+			password := r.FormValue("password")
+
+			// Проверка наличия пользователя в базе данных
+			var user User
+			err := db.QueryRow("SELECT username, password FROM users WHERE username=?", username).Scan(&user.Username, &user.Password)
+			if err != nil {
+				fmt.Fprintln(w, `<script>alert("Ошибка авторизации!");</script>`)
+				fmt.Fprintln(w, `<br><br><a href="/">Вернуться на главную страницу</a>`)
+				return
+			}
+
+			// Проверка пароля
+			if user.Password != password {
+				fmt.Fprintln(w, `<script>alert("Ошибка авторизации!");</script>`)
+				fmt.Fprintln(w, `<br><br><a href="/">Вернуться на главную страницу</a>`)
+				return
+			}
+
+			// Отправляем JavaScript-код для отображения всплывающего уведомления
+			fmt.Fprintln(w, `<script>alert("Авторизация прошла успешно!");</script>`)
+			fmt.Fprintln(w, `<br><br><a href="/">Вернуться на главную страницу</a>`)
+		}
+	})
+
+	// Обработчик страницы регистрации
+	http.HandleFunc("/registration", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			tmpl, err := template.ParseFiles("static/registration.html")
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = tmpl.Execute(w, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if r.Method == "POST" {
+			username := r.FormValue("username")
+			password := r.FormValue("password")
+
+			// Добавление пользователя в базу данных
+			stmt, err := db.Prepare("INSERT INTO users(username, password) VALUES(?, ?)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			_, err = stmt.Exec(username, password)
+			if err != nil {
+				fmt.Fprintln(w, `<script>alert("Ошибка регистрации!");</script>`)
+				fmt.Fprintln(w, `<br><br><a href="/">Вернуться на главную страницу</a>`)
+				return
+			}
+
+			// Отправляем JavaScript-код для отображения всплывающего уведомления
+			fmt.Fprintln(w, `<script>alert("Регистрация прошла успешно!");</script>`)
+			fmt.Fprintln(w, `<br><br><a href="/">Вернуться на главную страницу</a>`)
+		}
+	})
+
+	fs := http.FileServer(http.Dir("static"))
+	http.Handle("/", fs)
+	log.Println("Сервер запущен на порту 1212...")
+	err = http.ListenAndServe(":1212", nil)
+	if err != nil {
+		log.Fatal("Ошибка сервера: ", err)
+	}
 }
